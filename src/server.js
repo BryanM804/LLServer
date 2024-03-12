@@ -1,14 +1,9 @@
 const express = require("express");
-const sql = require("mysql2");
 const cors = require("cors");
 const app = express();
+const createConnection = require("./createConnection.js");
 
-const con = sql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "BryanSQL4154774514",
-    database: "workoutdb"
-});
+const con = createConnection();
 
 // Makes the server CORS enabled
 app.use(cors());
