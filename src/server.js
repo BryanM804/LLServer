@@ -30,14 +30,27 @@ app.get("/server/history/154820680687288320", (req, res) => {
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
 
-        con.query(`SELECT * FROM lifts WHERE id = 154820680687288320;`, (err2, results) => {
+        con.query(`SELECT * FROM lifts WHERE userID = 154820680687288320 ORDER BY setnumber DESC;`, (err2, results) => {
             if (err2) console.log(`Query error: ${err2}`);
 
-            console.log(results);
-
             res.json(results);
+
+            console.log("Brymul history fetched.")
         });
     });
+});
+
+app.get("/server/movements", (req, res) => {
+
+    con.connect((err) => {
+        if (err) console.log(`Connection error: ${err}`);
+
+        con.query(`SELECT * FROM exercises;`, (err2, movements) => {
+            res.json(movements);
+
+            console.log("Movements fetched.");
+        })
+    })
 });
 
 app.listen(5000, () => {
