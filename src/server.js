@@ -4,6 +4,9 @@ const bodyParser = require("body-parser");
 const app = express();
 const createConnection = require("./createConnection.js");
 
+const logSet = require("./logSet.js");
+const undoSet = require("./undoSet.js");
+
 const con = createConnection();
 const jsonParser = bodyParser.json();
 
@@ -58,8 +61,18 @@ app.get("/server/movements", (req, res) => {
 
 app.post("/log", (req, res) => {
     const set = req.body;
-    console.log(`[${set.date}] User Logged ${set.movement} ${set.weight}lbs x ${set.reps} reps for ${set.sets} sets.`);
-    res.json({message: "Server received POST request."});
+
+    logSet(con, set);
+    
+    res.json({message: "Server received POST request." });
+})
+
+app.post("/undo", (req, res) => {
+    const undoSets = req.body;
+
+    undoSet(con, undoSets);
+
+    res.json({ message: "Server received undo request." })
 })
 
 app.listen(5000, () => {
