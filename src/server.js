@@ -1,12 +1,15 @@
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const app = express();
 const createConnection = require("./createConnection.js");
 
 const con = createConnection();
+const jsonParser = bodyParser.json();
 
 // Makes the server CORS enabled
 app.use(cors());
+app.use(jsonParser);
 
 app.get("/server/user/brymul", (req, res) => {
 
@@ -52,6 +55,12 @@ app.get("/server/movements", (req, res) => {
         })
     })
 });
+
+app.post("/log", (req, res) => {
+    const set = req.body;
+    console.log(`[${set.date}] User Logged ${set.movement} ${set.weight}lbs x ${set.reps} reps for ${set.sets} sets.`);
+    res.json({message: "Server received POST request."});
+})
 
 app.listen(5000, () => {
     console.log("Server listening on port 5000...");
