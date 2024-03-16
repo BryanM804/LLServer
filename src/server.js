@@ -16,55 +16,34 @@ const authUser = require("./authUser.js");
 const con = createConnection();
 
 // Middlewares
+// CORS
+app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
-
-app.options("/auth", (req, res) => {
-    res.header({
-        "Access-Control-Allow-Origin": req.headers.origin,
-        "Access-Control-Allow-Methods": "POST",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Credentials": true
-    });
-});
 
 app.post("/auth", (req, res) => {
     const enteredUser = req.body;
 
     authUser(con, enteredUser, (isAuth) => {
-        res.header({
-            "Access-Control-Allow-Origin": req.headers.origin,
-            "Access-Control-Allow-Methods": "POST",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Allow-Credentials": true
-        });
-
         if (isAuth) {
             const token = jwt.sign(enteredUser, "tempPassKey", { expiresIn: "1h" });
-    
-            res.cookie("token", token, {
-                httpOnly: true,
-                sameSite: "none",
-                secure: true
-            });
-            res.json({ message: "Login verified.", username: enteredUser.username  })
+
+            res.json({ message: "Login verified.", username: enteredUser.username, discordid: "154820680687288320", token: token  });
+            //discord id is temp
         } else {
             res.json({ message: "Invalid login" });
         }
     });
 });
 
-// CORS
-app.use(cors());
+app.get("/user/:username", (req, res) => {
 
-app.get("/user/:userid", (req, res) => {
-
-    const userid = req.params.userid;
+    const username = req.params.username;
 
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
 
-        con.query(`SELECT * FROM accounts WHERE id = '${userid}';`, (err2, results) => {
+        con.query(`SELECT * FROM accounts WHERE name = '${username}';`, (err2, results) => {
             if (err2) console.log(`Query error: ${err2}`);
 
             console.log(`Successfully retreived profile for ${results[0].name}`);
@@ -73,8 +52,9 @@ app.get("/user/:userid", (req, res) => {
         });
     });
 
-    console.log(`User ${userid} fetched`);
+    console.log(`User ${username} fetched`);
 });
+
 
 app.get("/history/:userid", (req, res) => {
 
