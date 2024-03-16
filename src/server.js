@@ -1,52 +1,99 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
 const app = express();
 const createConnection = require("./createConnection.js");
 
 const logSet = require("./logSet.js");
 const undoSet = require("./undoSet.js");
+const calculateSetTotal = require("./calculateSetTotal.js");
+const updateProfileData = require("./updateProfileData.js");
+const createUserRoute = require("./createUserRoute.js");
+const authUser = require("./authUser.js");
 
 const con = createConnection();
-const jsonParser = bodyParser.json();
 
-// Makes the server CORS enabled
+// Middlewares
+app.use(bodyParser.json());
+app.use(cookieParser());
+
+app.options("/auth", (req, res) => {
+    res.header({
+        "Access-Control-Allow-Origin": req.headers.origin,
+        "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": true
+    });
+});
+
+app.post("/auth", (req, res) => {
+    const enteredUser = req.body;
+
+    authUser(con, enteredUser, (isAuth) => {
+        res.header({
+            "Access-Control-Allow-Origin": req.headers.origin,
+            "Access-Control-Allow-Methods": "POST",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Credentials": true
+        });
+
+        if (isAuth) {
+            const token = jwt.sign(enteredUser, "tempPassKey", { expiresIn: "1h" });
+    
+            res.cookie("token", token, {
+                httpOnly: true,
+                sameSite: "none",
+                secure: true
+            });
+            res.json({ message: "Login verified.", username: enteredUser.username  })
+        } else {
+            res.json({ message: "Invalid login" });
+        }
+    });
+});
+
+// CORS
 app.use(cors());
-app.use(jsonParser);
 
-app.get("/server/user/brymul", (req, res) => {
+app.get("/user/:userid", (req, res) => {
+
+    const userid = req.params.userid;
 
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
 
-        con.query(`SELECT * FROM accounts WHERE name = 'brymul';`, (err2, results) => {
+        con.query(`SELECT * FROM accounts WHERE id = '${userid}';`, (err2, results) => {
             if (err2) console.log(`Query error: ${err2}`);
 
-            console.log(results);
+            console.log(`Successfully retreived profile for ${results[0].name}`);
 
             res.json(results[0]);
         });
     });
 
-    console.log("User brymul fetched");
+    console.log(`User ${userid} fetched`);
 });
 
-app.get("/server/history/154820680687288320", (req, res) => {
+app.get("/history/:userid", (req, res) => {
+
+    const userid = req.params.userid;
 
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
 
-        con.query(`SELECT * FROM lifts WHERE userID = 154820680687288320 ORDER BY setnumber DESC;`, (err2, results) => {
+        con.query(`SELECT * FROM lifts WHERE userID = '${userid}' ORDER BY setnumber DESC;`, (err2, results) => {
             if (err2) console.log(`Query error: ${err2}`);
 
             res.json(results);
 
-            console.log("Brymul history fetched.")
+            console.log(`Successfully retreived history for ${userid}`);
         });
     });
 });
 
-app.get("/server/movements", (req, res) => {
+app.get("/movements", (req, res) => {
 
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
@@ -61,7 +108,12 @@ app.get("/server/movements", (req, res) => {
 
 app.post("/log", (req, res) => {
     const set = req.body;
+    const updateData = {
+        "xpGain": (calculateSetTotal(set.movement, set.weight, set.reps) + 100) * set.sets,
+        "userid": set.userid
+    }
 
+    updateProfileData(con, updateData);
     logSet(con, set);
     
     res.json({message: "Server received POST request." });
@@ -74,6 +126,27 @@ app.post("/undo", (req, res) => {
 
     res.json({ message: "Server received undo request." })
 })
+
+app.options("/auth", (req, res) => {
+    res.header({
+        "Access-Control-Allow-Origin": req.headers.origin
+    });
+})
+
+app.post("/createuser", (req, res) => {
+    const newUserData = req.body;
+
+    con.connect((err) => {
+        if (err) console.log(`Connection error creating account: ${err}`);
+
+        con.query(`INSERT INTO logins (username, password) VALUES ('${newUserData.username}', '${newUserData.password}')`, (err2, result) => {
+            if (err2) console.log(`Query error creating account: ${err2}`);
+
+            console.log(`Account ${newUserData.username} successfully created.`);
+            res.json({ message: "User created." });
+        })
+    })
+});
 
 app.listen(5000, () => {
     console.log("Server listening on port 5000...");

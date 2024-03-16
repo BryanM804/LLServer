@@ -1,5 +1,16 @@
+const calculateSetTotal = require("./calculateSetTotal.js");
+const updateProfileData = require("./updateProfileData.js");
+
 module.exports = (connection, undoData) => {
     for (const undoSet of undoData) {
+
+        const updateData = {
+            "xpGain": (calculateSetTotal(undoSet.movement, undoSet.weight, undoSet.reps) + 100) * -1,
+            "userid": undoSet.userID
+        }
+    
+        updateProfileData(connection, updateData);
+
         connection.connect((err) => {
             if (err) console.log(`Connection error: ${err}`);
 
