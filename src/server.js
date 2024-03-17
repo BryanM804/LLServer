@@ -11,6 +11,7 @@ const undoSet = require("./undoSet.js");
 const calculateSetTotal = require("./calculateSetTotal.js");
 const updateProfileData = require("./updateProfileData.js");
 const createUserRoute = require("./createUserRoute.js");
+const createProfile = require("./createProfile.js");
 const authUser = require("./authUser.js");
 
 const con = createConnection();
@@ -26,10 +27,31 @@ app.post("/auth", (req, res) => {
 
     authUser(con, enteredUser, (isAuth) => {
         if (isAuth) {
+            // Change tempPassKey to ENV variable at some point -----------
             const token = jwt.sign(enteredUser, "tempPassKey", { expiresIn: "1h" });
 
-            res.json({ message: "Login verified.", username: enteredUser.username, discordid: "154820680687288320", token: token  });
-            //discord id is temp
+            con.connect((err) => {
+                if (err) console.log(`Connection error authenticating: ${err}`);
+
+                con.query(`SELECT id FROM accounts WHERE name='${enteredUser.username}';`, (err2, result) => {
+                    if (err2) console.log(`Query error authenticating: ${err2}`);
+
+                    if (result.length > 0) {
+                        res.json({ message: "Login verified.", username: enteredUser.username, discordid: result[0].id, token: token  });
+                    } else {
+                        con.query(`SELECT userid FROM logins WHERE username='${enteredUser.username}';`, (err3, result2) => {
+                            if (err3) console.log(`Query error authenticating: ${err3}`);
+
+                            if (result2.length > 0) {
+                                res.json({ message: "Login verified.", username: enteredUser.username, discordid: result2[0].userid, token: token  });
+                            } else {
+                                res.json({ message: "error" });
+                                throw new Error("Unexpected lack of userid.");
+                            }
+                        })
+                    }
+                });
+            })
         } else {
             res.json({ message: "Invalid login" });
         }
@@ -107,23 +129,43 @@ app.post("/undo", (req, res) => {
     res.json({ message: "Server received undo request." })
 })
 
-app.options("/auth", (req, res) => {
-    res.header({
-        "Access-Control-Allow-Origin": req.headers.origin
-    });
-})
-
 app.post("/createuser", (req, res) => {
     const newUserData = req.body;
 
     con.connect((err) => {
         if (err) console.log(`Connection error creating account: ${err}`);
 
-        con.query(`INSERT INTO logins (username, password) VALUES ('${newUserData.username}', '${newUserData.password}')`, (err2, result) => {
-            if (err2) console.log(`Query error creating account: ${err2}`);
+        con.query(`SELECT username FROM logins WHERE username='${newUserData.username}'`, (usernameError, existingUsers) => {
+            if (usernameError) console.log(`Query error checking for duplicate username: ${usernameError}`);
 
-            console.log(`Account ${newUserData.username} successfully created.`);
-            res.json({ message: "User created." });
+            if (existingUsers.length > 0) {
+                res.json({ message: "Username taken." });
+            } else {
+                // Attempts to link the discord id if the user already is using the discord bot
+                con.query(`SELECT id FROM accounts WHERE name='${newUserData.username}'`, (err2, existingId) => {
+                    if (err2) console.log(`Query error checking for existing discord user: ${err2}`);
+
+                    let discordid = "";
+
+                    if (existingId.length > 0) {
+                        discordid = existingId[0].id;
+                    }
+
+                    con.query(`INSERT INTO logins (username, password, discordid) VALUES ('${newUserData.username}', '${newUserData.password}', '${discordid}')`, (err2, result) => {
+                        if (err2) console.log(`Query error creating account: ${err2}`);
+            
+                        console.log(`Account ${newUserData.username} successfully created.`);
+
+                        if (existingId.length == 0) {
+                            createProfile(con, newUserData.username, () => {
+                                res.json({ message: "User created." });
+                            });
+                        } else {
+                            res.json({ message: "User created." });
+                        }
+                    })
+                })
+            }
         })
     })
 });
