@@ -95,6 +95,52 @@ app.get("/history/:userid", (req, res) => {
     });
 });
 
+app.get("/label/:userid/:date", (req, res) => {
+    const userid = req.params.userid;
+    const date = req.params.date;
+
+    con.connect((err) => {
+        if (err) console.log(`Connection error: ${err}`);
+
+        con.query(`SELECT label FROM labels WHERE userID='${userid}' AND date='${date}' ORDER By labelid DESC`, (err2, result) => {
+            if (err2) console.log(`Error querying for label: ${err2}`);
+
+            res.json(result);
+            console.log(`Fetched label for user ${userid}`);
+        })
+    })
+});
+
+app.post("/addlabel", (req, res) => {
+    const label = req.body;
+
+    con.connect((err) => {
+        if (err) console.log(`Connection error: ${err}`);
+
+        con.query(`INSERT INTO labels (userID, label, date) VALUES ('${label.userid}', '${label.label}', '${label.date}')`, (err2, result) => {
+            if (err2) console.log(`Query error inserting label: ${err2}`);
+
+            console.log(`Added label ${label.label}`);
+            res.json({ message: "Label added successfully" });
+        })
+    })
+});
+
+app.post("/changestat", (req, res) => {
+    const newStat = req.body;
+
+    con.connect((err) => {
+        if (err) console.log(`Connection error: ${err}`);
+
+        con.query(`UPDATE accounts SET ${newStat.type.toLowerCase()}=${newStat.value} WHERE id='${newStat.userid}';`, (err2, result) => {
+            if (err2) console.log(`Query error updating stats: ${err2}`);
+
+            console.log(`Set user ${newStat.userid}'s ${newStat.type} to ${newStat.value}`);
+            res.json({ message: `Updated ${newStat.type} successfully` });
+        })
+    })
+})
+
 app.get("/movements", (req, res) => {
 
     con.connect((err) => {
