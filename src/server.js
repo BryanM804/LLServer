@@ -85,7 +85,7 @@ app.get("/history/:userid", (req, res) => {
     con.connect((err) => {
         if (err) console.log(`Connection error: ${err}`);
 
-        con.query(`SELECT * FROM lifts WHERE userID = '${userid}' ORDER BY setnumber DESC;`, (err2, results) => {
+        con.query(`SELECT * FROM lifts WHERE userID = '${userid}' ORDER BY dateval DESC, setid DESC;`, (err2, results) => {
             if (err2) console.log(`Query error: ${err2}`);
 
             res.json(results);
