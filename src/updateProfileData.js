@@ -1,4 +1,4 @@
-module.exports = (connection, data) => {
+module.exports = (connection, data, callback) => {
 
     connection.connect((err) => {
         if (err) console.log(`Connection error updating profile: ${err}`);
@@ -23,6 +23,8 @@ module.exports = (connection, data) => {
 
             connection.query(`UPDATE accounts SET level=${currentLevel}, xp=${currentXP} WHERE id='${data.userid}'`, (err3, result) => {
                 if (err3) console.log(`Query error updating profile: ${err3}`);
+
+                if (callback) callback();
             });
             
         });
