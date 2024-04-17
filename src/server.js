@@ -77,6 +77,7 @@ app.post("/resolveRequest", (req, res) => {
             // Set friends status to friends
             con.query(`UPDATE friends WHERE friendid = ${requestid} SET status = 'friends', origindate = '${date}';`, (err2, result) => {
                 res.json({ message: "Request accepted." });
+                console.log(`Request ${requestid} accepted.`);
             })
 
         } else { // deny
@@ -84,6 +85,7 @@ app.post("/resolveRequest", (req, res) => {
             // Delete friend request
             con.query(`DELETE FROM friends WHERE friendid = ${requestid}`, (err2, result) => {
                 res.json({ message: "Request denied" });
+                console.log(`Request ${requestid} denied.`);
             })
         }
     });
@@ -102,6 +104,8 @@ app.post("/sendrequest", (req, res) => {
                 con.query(`INSERT INTO friends (sendername, receivername, status) 
                         VALUES ('${request.senderName}', '${request.receiverName}', 'pending');`, (err2, result) => {
                     res.json({ message: "Request sent." });
+
+                    console.log(`${request.senderName} sent a friend request to ${request.receiverName}.`);
                 });
             }
         });
@@ -138,6 +142,8 @@ app.get("/friends/:username", (req, res) => {
             if (err2) console.log(`Query error getting friends: ${err2}`);
 
             res.json(results);
+            
+            console.log(`Fetched friends for ${name}.`);
         });
     });
 });
@@ -153,6 +159,7 @@ app.get("/requests/:username", (req, res) => {
             if (err2) console.log(`Query error getting friend requests: ${err2}`);
             
             res.json(results);
+            console.log(`Fetched requests for ${name}.`);
         });
     });
 });
