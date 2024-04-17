@@ -10,6 +10,7 @@ const logSet = require("./logSet.js");
 const undoSet = require("./undoSet.js");
 const calculateSetTotal = require("./calculateSetTotal.js");
 const updateProfileData = require("./updateProfileData.js");
+const changeUserStatus = require("./changeUserStatus.js");
 const createUserRoute = require("./createUserRoute.js");
 const createProfile = require("./createProfile.js");
 const authUser = require("./authUser.js");
@@ -28,7 +29,7 @@ app.post("/auth", (req, res) => {
     authUser(con, enteredUser, (isAuth) => {
         if (isAuth) {
             // Change tempPassKey to ENV variable at some point -----------
-            const token = jwt.sign(enteredUser, "tempPassKey", { expiresIn: "1h" });
+            const token = jwt.sign(enteredUser, "tempPassKey", { expiresIn: "4h" });
 
             con.connect((err) => {
                 if (err) console.log(`Connection error authenticating: ${err}`);
@@ -44,6 +45,13 @@ app.post("/auth", (req, res) => {
 
                             if (result2.length > 0) {
                                 res.json({ message: "Login verified.", username: enteredUser.username, discordid: result2[0].userid, token: token  });
+
+                                changeUserStatus(con, result2[0].userid, "online");
+
+                                setTimeout(() => {
+                                    changeUserStatus(con, result2[0].userid, "offline");
+                                }, 1000); // remember to change this to 4 hours later
+
                             } else {
                                 res.json({ message: "error" });
                                 throw new Error("Unexpected lack of userid.");
@@ -57,6 +65,48 @@ app.post("/auth", (req, res) => {
         }
     });
 });
+
+app.post("/resolveRequest", (req, res) => {
+    const resolution = req.body.resolution;
+    const requestid = req.body.requestid;
+
+    con.connect((err) => {
+        if (resolution === "accept") {
+            const date = new Date().toDateString();
+
+            // Set friends status to friends
+            con.query(`UPDATE friends WHERE friendid = ${requestid} SET status = 'friends', origindate = '${date}';`, (err2, result) => {
+                res.json({ message: "Request accepted." });
+            })
+
+        } else { // deny
+
+            // Delete friend request
+            con.query(`DELETE FROM friends WHERE friendid = ${requestid}`, (err2, result) => {
+                res.json({ message: "Request denied" });
+            })
+        }
+    });
+});
+
+app.post("/sendrequest", (req, res) => {
+    const request = req.body;
+
+    con.connect((err) => {
+        if (err) console.error(err);
+        con.query(`SELECT * FROM friends WHERE (sendername = '${request.senderName}' AND receivername = '${request.receiverName}')
+                OR (sendername = '${request.receiverName} AND receivername = '${request.senderName}');`, (err2, result) => {
+            if (result.length > 0) {
+                res.json({ message: "Request already exists" });
+            } else {
+                con.query(`INSERT INTO friends (sendername, receivername, status) 
+                        VALUES ('${request.senderName}', '${request.receiverName}', 'pending');`, (err2, result) => {
+                    res.json({ message: "Request sent." });
+                });
+            }
+        });
+    });
+})
 
 app.get("/user/:username", (req, res) => {
 
@@ -77,6 +127,35 @@ app.get("/user/:username", (req, res) => {
     console.log(`User ${username} fetched`);
 });
 
+app.get("/friends/:username", (req, res) => {
+    const name = req.params.username;
+
+    con.connect((err) => {
+        if (err) console.error(err);
+
+        con.query(`SELECT * FROM friends WHERE (sendername = '${name}' OR receivername = '${name}') 
+                AND status = 'friends';`, (err2, results) => {
+            if (err2) console.log(`Query error getting friends: ${err2}`);
+
+            res.json(results);
+        });
+    });
+});
+
+app.get("/requests/:username", (req, res) => {
+    const name = req.params.username
+    
+    con.connect((err) => {
+        if (err) console.error(err);
+
+        con.query(`SELECT * FROM friends WHERE (sendername = '${name}' OR receivername = '${name}') 
+        AND status = 'pending';`, (err2, results) => {
+            if (err2) console.log(`Query error getting friend requests: ${err2}`);
+            
+            res.json(results);
+        });
+    });
+});
 
 app.get("/history/:userid", (req, res) => {
 
