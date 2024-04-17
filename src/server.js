@@ -98,7 +98,7 @@ app.post("/sendrequest", (req, res) => {
         if (err) console.error(err);
         con.query(`SELECT * FROM friends WHERE (sendername = '${request.senderName}' AND receivername = '${request.receiverName}')
                 OR (sendername = '${request.receiverName} AND receivername = '${request.senderName}');`, (err2, result) => {
-            if (result.length > 0) {
+            if (result != null && result.length > 0) {
                 res.json({ message: "Request already exists" });
             } else {
                 con.query(`INSERT INTO friends (sendername, receivername, status) 
