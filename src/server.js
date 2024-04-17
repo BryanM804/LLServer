@@ -68,7 +68,7 @@ app.post("/auth", (req, res) => {
 
 app.post("/resolveRequest", (req, res) => {
     const resolution = req.body.resolution;
-    const requestid = req.body.requestid;
+    const requestid = req.body.friendid;
 
     con.connect((err) => {
         if (resolution === "accept") {
