@@ -76,6 +76,8 @@ app.post("/resolveRequest", (req, res) => {
 
             // Set friends status to friends
             con.query(`UPDATE friends WHERE friendid = ${requestid} SET status = 'friends', origindate = '${date}';`, (err2, result) => {
+                if (err2) console.log(`Error updating friend status: ${err2}`);
+
                 res.json({ message: "Request accepted." });
                 console.log(`Request ${requestid} accepted.`);
             })
@@ -84,6 +86,8 @@ app.post("/resolveRequest", (req, res) => {
 
             // Delete friend request
             con.query(`DELETE FROM friends WHERE friendid = ${requestid}`, (err2, result) => {
+                if (err2) console.log(`Error updating friend status: ${err2}`);
+                
                 res.json({ message: "Request denied" });
                 console.log(`Request ${requestid} denied.`);
             })
