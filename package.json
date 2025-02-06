@@ -7,21 +7,23 @@
     "express": "^4.18.3",
     "express-session": "^1.18.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.9.2"
+    "mysql2": "^3.9.2",
+    "sequelize": "^6.37.5"
   },
   "name": "liftersserver",
   "version": "1.0.0",
   "proxy": "http://localhost:5000",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js",
-    "devRun": "nodemon src/server.js"
+    "start": "node src/index.js",
+    "devRun": "nodemon src/index.js"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "nodemon": "^3.1.0"
-  }
+  },
+  "type": "module"
 }

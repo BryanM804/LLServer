@@ -1,0 +1,1 @@
+export const BONUS_SET_XP = 100;
